@@ -48,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     EditText mess;
     String loc;
     ArrayList<String>arrayList = new ArrayList<>();
+    ArrayList<String>idList = new ArrayList<>();
     ArrayAdapter<String> adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +63,8 @@ public class MainActivity extends AppCompatActivity {
         have_data=false;
         tcount=1;
         tcount2=tcount-1;
-
+        adapter=  new ArrayAdapter<>(this,android.R.layout.simple_list_item_1,arrayList);
+        show.setAdapter(adapter);
 
         db.collection("name")
                 .orderBy("Testing", Query.Direction.ASCENDING)
@@ -72,13 +74,14 @@ public class MainActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
                         if (task.isSuccessful()) {
                             arrayList.clear();
+                            idList.clear();
                             for (QueryDocumentSnapshot document : task.getResult()) {
                                 Log.d("TAG", document.getId() + " => " + document.getData().get("Testing"));
                                 String a = document.getData().get("Testing").toString();
                                 arrayList.add(a);
+                                idList.add(document.getId());
 
-
-                            }
+                            }  adapter.notifyDataSetChanged();
                         } else {
                             Log.w("TAG", "Error getting documents.", task.getException());
                         }
@@ -87,8 +90,7 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d("ARRAY", String.valueOf(arrayList.size()));
 
-        adapter=  new ArrayAdapter<>(this,android.R.layout.simple_list_item_1,arrayList);
-        show.setAdapter(adapter);
+
       /*  if(reopen){
             System.out.println("Reopen1");
             database.execSQL("DROP TABLE IF EXISTS TAB0");
@@ -180,11 +182,12 @@ public class MainActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
                         if (task.isSuccessful()) {
                             arrayList.clear();
+                            idList.clear();
                             for (QueryDocumentSnapshot document : task.getResult()) {
                                 Log.d("TAG", document.getId() + " => " + document.getData().get("Testing"));
                                 String a = document.getData().get("Testing").toString();
                                 arrayList.add(a);
-
+                                idList.add(document.getId());
 
                             }
                             adapter.notifyDataSetChanged();
@@ -229,14 +232,19 @@ public class MainActivity extends AppCompatActivity {
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 if (arrayList.size() > 1) {
                     int px = position + 1;
-                    del = (String) show.getItemAtPosition(position);
+                    del = (String) idList.get(position);
                     Log.d("Del",del);
+                    arrayList.remove(position);
+
+
+
                     db.collection("name").document(del)
                             .delete()
                             .addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
                                     Log.d("Del", "DocumentSnapshot successfully deleted!"+del);
+                                    adapter.notifyDataSetChanged();
                                 }
                             })
                             .addOnFailureListener(new OnFailureListener() {
