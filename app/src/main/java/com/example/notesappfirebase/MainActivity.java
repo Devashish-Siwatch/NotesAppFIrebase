@@ -1,12 +1,14 @@
 package com.example.notesappfirebase;
 
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.View;
 import android.content.ContentValues;
 import android.os.Bundle;
@@ -18,22 +20,40 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class MainActivity extends AppCompatActivity {
     int button_count=1,pos;
     int i =1;
     int  tcount, tcount2;
-    DBHelper helper = new DBHelper(this);
-    SQLiteDatabase database;
+    String del;
+    ListView show;
+
+    FirebaseFirestore db = FirebaseFirestore.getInstance();
+    Map<String, Object> docData = new HashMap<>();
     Boolean del_press, save_press, first_time=true, reopen=false, initStart,edit_path,have_data;
     EditText mess;
     String loc;
+    ArrayList<String>arrayList = new ArrayList<>();
+    ArrayAdapter<String> adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+         show=findViewById(R.id.NoteShow);
 
         System.out.println("create");
         del_press=false;
@@ -42,6 +62,33 @@ public class MainActivity extends AppCompatActivity {
         have_data=false;
         tcount=1;
         tcount2=tcount-1;
+
+
+        db.collection("name")
+                .orderBy("Testing", Query.Direction.ASCENDING)
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            arrayList.clear();
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                Log.d("TAG", document.getId() + " => " + document.getData().get("Testing"));
+                                String a = document.getData().get("Testing").toString();
+                                arrayList.add(a);
+
+
+                            }
+                        } else {
+                            Log.w("TAG", "Error getting documents.", task.getException());
+                        }
+                    }
+                });
+
+        Log.d("ARRAY", String.valueOf(arrayList.size()));
+
+        adapter=  new ArrayAdapter<>(this,android.R.layout.simple_list_item_1,arrayList);
+        show.setAdapter(adapter);
       /*  if(reopen){
             System.out.println("Reopen1");
             database.execSQL("DROP TABLE IF EXISTS TAB0");
@@ -51,9 +98,10 @@ public class MainActivity extends AppCompatActivity {
             database.execSQL(copy);
             System.out.println("Reopen2");
         }*/
+
         initStart = true;
         View v = null;
-        saveData(v);
+
     }
 
 
@@ -65,8 +113,6 @@ public class MainActivity extends AppCompatActivity {
     public void saveData(View view) {
 
 
-        ArrayList<String>arrayList = new ArrayList<>();
-        ListView show =findViewById(R.id.NoteShow);
 
 
         //show.setBackgroundColor(Color.YELLOW);
@@ -77,10 +123,7 @@ public class MainActivity extends AppCompatActivity {
        }
         */
         //show.setVisibility(View.GONE);
-        if (button_count==1 && first_time==true){
-            database = helper.getWritableDatabase();
-            first_time =false;
-        }
+ 
 
         button_count++;
 
@@ -88,16 +131,28 @@ public class MainActivity extends AppCompatActivity {
         if(del_press==false && edit_path==false) {
             mess = (EditText) findViewById(R.id.Note);
             String message = mess.getText().toString();
-            if(message.length()==0 && have_data){
+            if(message.length()==0 && !have_data){
 
                 Toast.makeText(this,"Please enter a note", Toast.LENGTH_SHORT).show();
             }
             else {
 
                 System.out.println("Save"+message);
-                ContentValues values = new ContentValues();
-                values.put("NOTE", message);
-                database.insert("TAB" + tcount2, null, values);
+                docData.put("Testing", message);
+                db.collection("name").add(docData)
+                        .addOnSuccessListener(new OnSuccessListener<DocumentReference>(){
+
+                            @Override
+                            public void onSuccess(DocumentReference documentReference) {
+                                Log.d("WORKS", "DocumentSnapshot added with ID: " + documentReference.getId());
+                            }
+                        })
+                        .addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.w("Does not WORK :(", "Error adding document", e);
+                            }
+                        });
                 mess.setText("");
             }}
 
@@ -108,31 +163,40 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this,"Please enter a note", Toast.LENGTH_SHORT).show();
             }
             else{
-                ContentValues values = new ContentValues();
-                values.put("NOTE", message);
-                database.update("TAB"+tcount2,values,"_id = ?", new String[]{loc});
-                edit_path=false;
+                //TODO Adding editing option
+             //   ContentValues values = new ContentValues();
+           //     values.put("NOTE", message);
+             //   database.update("TAB"+tcount2,values,"_id = ?", new String[]{loc});
+            //    edit_path=false;
             }}
 
 
 
+        db.collection("name")
+                .orderBy("Testing", Query.Direction.ASCENDING)
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            arrayList.clear();
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                Log.d("TAG", document.getId() + " => " + document.getData().get("Testing"));
+                                String a = document.getData().get("Testing").toString();
+                                arrayList.add(a);
 
 
+                            }
+                            adapter.notifyDataSetChanged();
+                        } else {
+                            Log.w("TAG", "Error getting documents.", task.getException());
+                        }
+                    }
+                });
+
+        Log.d("ARRAY", String.valueOf(arrayList.size()));
 
 
-
-        Cursor cursor = database.rawQuery("SELECT NOTE FROM TAB"+tcount2, new String[]{});
-
-        if (cursor != null) {
-            cursor.moveToFirst();
-        }
-        do {
-            String a = cursor.getString(0);
-
-            arrayList.add(a);
-        } while (cursor.moveToNext());
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,android.R.layout.simple_list_item_1,arrayList);
-        show.setAdapter(adapter);
 
         /*
      if(del_press==true){
@@ -165,27 +229,36 @@ public class MainActivity extends AppCompatActivity {
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 if (arrayList.size() > 1) {
                     int px = position + 1;
-                    database.execSQL("DELETE FROM TAB" + tcount2 + " WHERE _id = " + px);
-                    database.execSQL("DROP TABLE IF EXISTS TAB" + tcount);
-                    String sql = "CREATE TABLE TAB" + tcount + " (_id INTEGER PRIMARY KEY AUTOINCREMENT, NOTE TEXT)";
-                    database.execSQL(sql);
-
-                    String copy = "INSERT INTO TAB" + tcount + "(NOTE) SELECT NOTE FROM TAB" + tcount2;
-                    database.execSQL(copy);
-                    // tcount++;
-                    database.execSQL("DROP TABLE IF EXISTS TAB" + tcount2);
+                    del = (String) show.getItemAtPosition(position);
+                    Log.d("Del",del);
+                    db.collection("name").document(del)
+                            .delete()
+                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Log.d("Del", "DocumentSnapshot successfully deleted!"+del);
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w("DEL", "Error deleting document", e);
+                                }
+                            });
+                //    arrayList.remove("del");
+              //      adapter.notifyDataSetChanged();
                     tcount++;
                     tcount2++;
                     del_press = true;
-                    saveData(view);
 
                 }
                 return true;
             }});
 
+        /* TODO Adding edit option
         show.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> adapter1, View view, int position, long id) {
+            public void onItemClick(AdapterView<? > adapter1, View view, int position, long id) {
                 int px = position + 1;
                 loc = ""+ px;
 
@@ -214,35 +287,14 @@ public class MainActivity extends AppCompatActivity {
                     String a = cursor.getString(0);
 
                     arrayList.add(a);
-                } while (cursor.moveToNext());*/
+                } while (cursor.moveToNext());
 
                 //  ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,R.layout.,arrayList);
                 //   show.setAdapter(adapter);
 
             }
         });
-
-        have_data=true;
+  */
+       // have_data=true;
     }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        System.out.println("Stop");
-        String del = "DROP TABLE IF EXISTS TAB0";
-        String make ="CREATE TABLE TAB0 (_id INTEGER PRIMARY KEY AUTOINCREMENT, NOTE TEXT)";
-        String copy = "INSERT INTO TAB0(NOTE) SELECT NOTE FROM TAB"+tcount2;
-        if(tcount2!=0){
-            database.execSQL(del);
-            database.execSQL(make);
-            database.execSQL(copy);
-        }
-
-        reopen = true;
-
-
-    }
-
-    /*     */
-
 }
