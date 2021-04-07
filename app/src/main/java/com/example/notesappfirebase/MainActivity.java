@@ -65,7 +65,42 @@ public class MainActivity extends AppCompatActivity {
         tcount2=tcount-1;
         adapter=  new ArrayAdapter<>(this,android.R.layout.simple_list_item_1,arrayList);
         show.setAdapter(adapter);
+        show.setLongClickable(true);
+        show.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                if (arrayList.size() > 1) {
+                    int px = position + 1;
+                    del = (String) idList.get(position);
+                    Log.d("Del",del);
+                    arrayList.remove(position);
 
+
+
+                    db.collection("name").document(del)
+                            .delete()
+                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Log.d("Del", "DocumentSnapshot successfully deleted!"+del);
+                                    adapter.notifyDataSetChanged();
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w("DEL", "Error deleting document", e);
+                                }
+                            });
+                    //    arrayList.remove("del");
+                    //      adapter.notifyDataSetChanged();
+                    tcount++;
+                    tcount2++;
+                    //del_press = true;
+
+                }
+                return true;
+            }});
         db.collection("name")
                 .orderBy("Testing", Query.Direction.ASCENDING)
                 .get()
@@ -133,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
         if(del_press==false && edit_path==false) {
             mess = (EditText) findViewById(R.id.Note);
             String message = mess.getText().toString();
-            if(message.length()==0 && !have_data){
+            if(message.length()==0){
 
                 Toast.makeText(this,"Please enter a note", Toast.LENGTH_SHORT).show();
             }
@@ -157,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
                         });
                 mess.setText("");
             }}
-
+/*
         if(edit_path){
             mess = (EditText) findViewById(R.id.Note);
             String message = mess.getText().toString();
@@ -172,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
             //    edit_path=false;
             }}
 
-
+*/
 
         db.collection("name")
                 .orderBy("Testing", Query.Direction.ASCENDING)
@@ -225,8 +260,8 @@ public class MainActivity extends AppCompatActivity {
 */
         initStart=false;
         del_press=false;
+/*
 
-        show.setLongClickable(true);
         show.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
@@ -262,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             }});
-
+*/
         /* TODO Adding edit option
         show.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
